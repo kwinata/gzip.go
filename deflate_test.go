@@ -23,7 +23,18 @@ func TestReadCodes(t *testing.T) {
 		}),
 	}
 
-	expectedHRanges := []huffmanRange{
+	expectedBitLengths := []int{
+		3, 0, 0, 0, 4, // 0-4
+		4, 3, 2, 3, 3, // 5-9
+		4, 5, 0, 0, 0, // 10-14
+		0, 6, 7, 7, // 15-18
+	}
+	codesBitLengths := readCodesBitLengths(stream, hclen)
+	assert.Equal(t, expectedBitLengths, codesBitLengths)
+}
+
+func TestReadAlphabetsBitLengths(t *testing.T) {
+	codesHRanges := []huffmanRange{
 		{0, 3},
 		{3, 0},
 		{5, 4},
@@ -36,40 +47,42 @@ func TestReadCodes(t *testing.T) {
 		{16, 6},
 		{18, 7},
 	}
-	hRanges := readCodes(stream, hclen)
-	assert.Equal(t, expectedHRanges, hRanges)
+	codesHuffmanTreeRoot := buildHuffmanTree(codesHRanges)
+	debugCodeTable := make([]string, 19)
+	traverseHuffmanTree(codesHuffmanTreeRoot, "", debugCodeTable)
 
-	expectedCodes := []string{
-		// total of 19 codes
+	// TODO: possible bug here on interpreting bit string. The guide seems to have some error
+	//  they write the bit string as 11111011101011111101010001101100011100
+	source := bytes.NewReader(helperBitStringToBytes("1111110111001111111010100011011011001110"))
+	/*
+		1111110	 111
+		17	     repeat '0' 10
 
-		// 0
-		"010",
-		"",
-		"",
-		"",
-		"1100",
+		00
+		7 (literal)
 
-		// 5
-		"1101",
-		"011",
-		"00",
-		"100",
-		"101",
+		1111111	0101000
+		18	    repeat '0' 21 times
 
-		// 10
-		"1110",
-		"11110",
-		"",
-		"",
-		"",
+		1101
+		5 (literal)
 
-		// 15
-		"",
-		"111110",
-		"1111110",
-		"1111111",
+		101
+		9 (literal)
+
+		100
+		8 (literal)
+
+		1110
+		10 (literal)
+	*/
+	alphabetBitLengths := []int{
+		// there are 10 + 1 (7) + 21 + 4 (5, 9, 8, 10) = 36 alphabets
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 5, 9, 8, 10,
 	}
-	codeTable := make([]string, 19)
-	traverseHuffmanTree(buildHuffmanTree(hRanges), "", codeTable)
-	assert.Equal(t, expectedCodes, codeTable)
+	assert.Equal(t, alphabetBitLengths,
+		readAlphabetsBitLengths(&bitstream{source: source}, len(alphabetBitLengths), codesHuffmanTreeRoot))
 }

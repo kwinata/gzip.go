@@ -62,3 +62,15 @@ func TestReadBitsInv(t *testing.T) {
 		assert.Equal(t, tc.bitsValue, readBitsInv(stream, tc.length), tc)
 	}
 }
+
+func TestHelperBitStringToBytes(t *testing.T) {
+	bits := "11111011101011111101010001101100011100"
+	expectedBytes := []byte{
+		0b1101_1111,
+		0b1111_0101,
+		0b0010_1011,
+		0b0011_0110,
+		0b00_1110,
+	}
+	assert.Equal(t, expectedBytes, helperBitStringToBytes(bits))
+}

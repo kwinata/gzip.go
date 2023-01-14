@@ -4,8 +4,8 @@ import "io"
 
 type bitstream struct {
 	source io.ByteReader
-	buf byte
-	mask byte // current bit position within buf; 8 is MSB
+	buf    byte
+	mask   byte // current bit position within buf; 8 is MSB
 }
 
 // nextBit is little endian (LSB to MSB)
@@ -20,7 +20,7 @@ func nextBit(stream *bitstream) byte {
 	}
 
 	var bit byte = 0
-	if stream.buf & stream.mask > 0 {
+	if stream.buf&stream.mask > 0 {
 		bit = 1
 	}
 	stream.mask <<= 1
@@ -37,4 +37,17 @@ func readBitsInv(stream *bitstream, count int) (value int) {
 		value |= int(bit) << i // set as MSB
 	}
 	return value
+}
+
+func helperBitStringToBytes(bits string) []byte {
+	var bytes []byte
+	for i, c := range bits {
+		if i%8 == 0 {
+			bytes = append(bytes, 0x00)
+		}
+		if string(c) == "1" {
+			bytes[len(bytes)-1] |= 1 << (i % 8)
+		}
+	}
+	return bytes
 }

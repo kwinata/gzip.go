@@ -3,17 +3,29 @@ package main
 type huffmanNode struct {
 	code int // -1 for non-leaf nodes
 	zero *huffmanNode
-	one *huffmanNode
+	one  *huffmanNode
 }
 
 type huffmanRange struct {
-	end int  // set bitLength until index end
+	end       int // set bitLength until index end
 	bitLength int
 }
 
 type treeNode struct {
-	len int
+	len  int
 	code int
+}
+
+func buildHRangesFromBitLengthsArray(bitLengths []int) (hRanges []huffmanRange) {
+	for i := 0; i < 19; i++ {
+		if i == 0 || bitLengths[i] != bitLengths[i-1] {
+			hRanges = append(hRanges, huffmanRange{i, bitLengths[i]})
+		} else {
+			// if bitLength is the same as previous, simply increase the end pointer
+			hRanges[len(hRanges)-1].end = i
+		}
+	}
+	return hRanges
 }
 
 func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
@@ -28,10 +40,10 @@ func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
 	// (2. allocate space (skipped, will allocate near the logic itself))
 
 	// 3. Determine the number of codes for each bit-length
-	blCount := map[int]int{}  // number of codes for each bit length
+	blCount := map[int]int{} // number of codes for each bit length
 	previousEnd := -1
 	for _, hRange := range hRanges {
-		if hRange.end - previousEnd <= 0 {
+		if hRange.end-previousEnd <= 0 {
 			panic("The end of each huffmanRange must be strictly increasing")
 		}
 		count := hRange.end - previousEnd
@@ -42,17 +54,17 @@ func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
 	// 4. Populate nextCode (the starting `code` for each bit length group)
 	nextCode := map[int]int{} // the starting 'code' for each bit length group
 	code := 0
-	for bitLength := 1;  bitLength <= maxBitLength; bitLength++ {
+	for bitLength := 1; bitLength <= maxBitLength; bitLength++ {
 		// the previous starting point was code, we increment it by the bitLengthCount of
 		//   the previous group, then we right shift it by 1.
-		code = (code + blCount[bitLength - 1]) << 1;
+		code = (code + blCount[bitLength-1]) << 1
 
 		nextCode[bitLength] = code
 
 	}
 
 	// 5. assign codes to each symbol in range
-	numberOfCodes := hRanges[len(hRanges) - 1].end
+	numberOfCodes := hRanges[len(hRanges)-1].end
 	tree := make([]treeNode, numberOfCodes+1) // symbol start from zero
 	hRangeIdx := 0
 	for ti := 0; ti <= numberOfCodes; ti++ { // ti for tree index
@@ -78,7 +90,7 @@ func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
 		}
 		// traverse the tree, build node if not exist; bi is bitIndex
 		for bi := tree[ti].len; bi > 0; bi-- {
-			if (tree[ti].code & (1 << (bi -1))) > 0 { // if the bi-th bit is set
+			if (tree[ti].code & (1 << (bi - 1))) > 0 { // if the bi-th bit is set
 				if node.one == nil {
 					node.one = &huffmanNode{code: -1}
 				}
@@ -96,4 +108,31 @@ func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
 		node.code = ti
 	}
 	return root
+}
+
+func traverseHuffmanTree(node *huffmanNode, prefix string, codeTable []string) {
+	if node.code != -1 {
+		codeTable[node.code] = prefix
+	}
+	if node.one != nil {
+		traverseHuffmanTree(node.one, prefix+"1", codeTable)
+	}
+	if node.zero != nil {
+		traverseHuffmanTree(node.zero, prefix+"0", codeTable)
+	}
+}
+
+func getCode(stream *bitstream, root *huffmanNode) (int, string) {
+	node := root
+	debugHuffmanCodeString := ""
+	for node.code == -1 {
+		if nextBit(stream) == 0 {
+			node = node.zero
+			debugHuffmanCodeString += "0"
+		} else {
+			node = node.one
+			debugHuffmanCodeString += "1"
+		}
+	}
+	return node.code, debugHuffmanCodeString
 }
