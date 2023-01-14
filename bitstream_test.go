@@ -3,9 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNextBit(t *testing.T) {
@@ -49,8 +50,8 @@ func TestReadBitsInv(t *testing.T) {
 	stream := &bitstream{
 		source: io.ByteReader(source),
 	}
-	expected := []struct{
-		length int
+	expected := []struct {
+		length    int
 		bitsValue int
 	}{
 		{5, 0b00011},
