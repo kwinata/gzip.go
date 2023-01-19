@@ -51,8 +51,6 @@ func TestReadAlphabetsBitLengths(t *testing.T) {
 	debugCodeTable := make([]string, 19)
 	traverseHuffmanTree(codesHuffmanTreeRoot, "", debugCodeTable)
 
-	// TODO: possible bug here on interpreting bit string. The guide seems to have some error
-	//  they write the bit string as 11111011101011111101010001101100011100
 	source := bytes.NewReader(helperBitStringToBytes("1111110111001111111010100011011011001110"))
 	/*
 		1111110	 111
@@ -85,4 +83,51 @@ func TestReadAlphabetsBitLengths(t *testing.T) {
 	}
 	assert.Equal(t, alphabetBitLengths,
 		readAlphabetsBitLengths(&bitstream{source: source}, len(alphabetBitLengths), codesHuffmanTreeRoot))
+}
+
+func TestInflateHuffmanCodesNoBackPointer(t *testing.T) {
+	// These are inefficient huffman trees. This is used to make it easier to create the test cases
+	literalsRoot := buildHuffmanTree([]huffmanRange{
+		{285, 16},
+	})
+	distancesRoot := buildHuffmanTree([]huffmanRange{
+		{30, 8},
+	})
+
+	stream := &bitstream{
+		source: bytes.NewReader([]byte{
+			0x00, 0x00, // 0x00
+			0x00, 0x80, // 0x01
+			0x00, 0x40, // 0x02
+			0x00, 0x20, // 0x04
+			0x80, 0x00, // stop code
+		}),
+	}
+	outBytes := inflateHuffmanCodes(stream, literalsRoot, distancesRoot)
+	assert.Equal(t, []byte{0x00, 0x01, 0x02, 0x04}, outBytes)
+}
+
+func TestInflateHuffmanCodesWithLiteralBackPointer(t *testing.T) {
+	// These are inefficient huffman trees. This is used to make it easier to create the test cases
+	literalsRoot := buildHuffmanTree([]huffmanRange{
+		{285, 16},
+	})
+	distancesRoot := buildHuffmanTree([]huffmanRange{
+		{30, 8},
+	})
+
+	stream := &bitstream{
+		source: bytes.NewReader([]byte{
+			0x00, 0x00, // 0x00
+			0x00, 0x80, // 0x01
+			0x00, 0x40, // 0x02
+			0x00, 0x20, // 0x04
+			0x80, 0x40, // Code 258, back-pointer length of 4
+			0x40, // distance code 2,
+			0x00, 0xC0, // 0x03
+			0x80, 0x00, // stop code
+		}),
+	}
+	outBytes := inflateHuffmanCodes(stream, literalsRoot, distancesRoot)
+	assert.Equal(t, []byte{0x00, 0x01, 0x02, 0x04, 0x01, 0x02, 0x04, 0x01, 0x03}, outBytes)
 }

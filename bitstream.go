@@ -40,7 +40,7 @@ func readBitsInv(stream *bitstream, count int) (value int) {
 }
 
 func helperBitStringToBytes(bits string) []byte {
-	var bytes []byte
+	bytes := make([]byte, 0)
 	for i, c := range bits {
 		if i%8 == 0 {
 			bytes = append(bytes, 0x00)
