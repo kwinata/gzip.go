@@ -50,8 +50,7 @@ func readAlphabetsBitLengths(stream *bitstream, alphabetCount int, codeLengthsRo
 
 	i := 0
 	for i < alphabetCount {
-		code, huffmanCodeString := getCode(stream, codeLengthsRoot)
-		println(huffmanCodeString, code)
+		code, _ := getCode(stream, codeLengthsRoot)
 		// 0-15: literal (4 bits)
 		// 16: repeat the previous character n times
 		// 17: insert n 0's (3 bit specified), max value is 10
