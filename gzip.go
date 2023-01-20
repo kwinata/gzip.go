@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ type GzipHeader struct {
 	OS                byte
 }
 
-type GzipFile struct {
+type GzipMetaData struct {
 	Header GzipHeader
 	Xlen int16
 	Extra []byte
@@ -44,38 +45,67 @@ func readCString(file io.Reader) (buf []byte) {
 	return
 }
 
-func readGzipMetaData(file io.Reader) GzipFile {
-	gzip := GzipFile{}
-	if err := binary.Read(file, binary.LittleEndian, &gzip.Header); err != nil {
+func readGzipMetaData(file io.Reader) GzipMetaData {
+	gzipMetaData := GzipMetaData{}
+	if err := binary.Read(file, binary.LittleEndian, &gzipMetaData.Header); err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v+\n", gzip)
-	if !(gzip.Header.ID[0] == 0x1f && gzip.Header.ID[1] == 0x8b) {
-		panic("Not a gzip format")
+	if !(gzipMetaData.Header.ID[0] == 0x1f && gzipMetaData.Header.ID[1] == 0x8b) {
+		panic("Not a gzipMetaData format")
 	}
-	if gzip.Header.CompressionMethod != 8 {
+	if gzipMetaData.Header.CompressionMethod != 8 {
 		panic("Unrecognized compression method")
 	}
-	if (gzip.Header.Flags & FEXTRA) != 0 {
-		if err := binary.Read(file, binary.LittleEndian, &gzip.Xlen); err != nil {
+	if (gzipMetaData.Header.Flags & FEXTRA) != 0 {
+		if err := binary.Read(file, binary.LittleEndian, &gzipMetaData.Xlen); err != nil {
 			panic(err)
 		}
-		gzip.Extra = make([]byte, gzip.Xlen)
-		if err := binary.Read(file, binary.LittleEndian, &gzip.Extra); err != nil {
+		gzipMetaData.Extra = make([]byte, gzipMetaData.Xlen)
+		if err := binary.Read(file, binary.LittleEndian, &gzipMetaData.Extra); err != nil {
 			panic(err)
 		}
 		// for now we just ignore the extra data
 	}
-	if (gzip.Header.Flags & FNAME) != 0 {
-		gzip.Fname = readCString(file)
+	if (gzipMetaData.Header.Flags & FNAME) != 0 {
+		gzipMetaData.Fname = readCString(file)
 	}
-	if (gzip.Header.Flags & FCOMMENT) != 0 {
-		gzip.Fcomment = readCString(file)
+	if (gzipMetaData.Header.Flags & FCOMMENT) != 0 {
+		gzipMetaData.Fcomment = readCString(file)
 	}
-	if (gzip.Header.Flags & FHCRC) != 0 {
-		if err := binary.Read(file, binary.LittleEndian, &gzip.Crc16); err != nil {
+	if (gzipMetaData.Header.Flags & FHCRC) != 0 {
+		if err := binary.Read(file, binary.LittleEndian, &gzipMetaData.Crc16); err != nil {
 			panic(err)
 		}
 	}
-	return gzip
+	return gzipMetaData
+}
+
+func gzipInflate(file io.Reader) []byte {
+	var lastBlock byte
+	stream := &bitstream{source: file.(io.ByteReader)}
+	var out []byte
+	for lastBlock == 0 {
+		lastBlock = nextBit(stream)
+		blockFormat := readBitsInv(stream, 2)
+		switch blockFormat {
+		case 0b00:
+			panic("uncompressed block type not supported")
+		case 0b01:
+			literalsRoot := readFixedHuffmanTree(stream)
+			out = append(out, inflateHuffmanCodes(stream, literalsRoot, nil)...)
+		case 0b10:
+			literalsRoot, distancesRoot := readDynamicHuffmanTree(stream)
+			out = append(out, inflateHuffmanCodes(stream, literalsRoot, distancesRoot)...)
+		default:
+			panic("unsupported block type")
+		}
+	}
+	return out
+}
+
+// TODO create test
+func readGzipFile(file io.Reader) {
+	_ = readGzipMetaData(file)
+	out := gzipInflate(bufio.NewReader(file))
+	fmt.Println(out)
 }

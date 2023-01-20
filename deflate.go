@@ -2,16 +2,17 @@ package main
 
 import "fmt"
 
-func readHuffmanTree(stream *bitstream) {
-	var hlit = readBitsInv(stream, 5)
-	var hdist = readBitsInv(stream, 5)
+func readFixedHuffmanTree(stream *bitstream) (root *huffmanNode) {
+	return buildHuffmanTree([]huffmanRange{
+		{143, 8},
+		{255, 9},
+		{279, 7},
+		{287, 8},
+	})
+}
 
-	// there are (hclen + 4) number of codes
-	var hclen = readBitsInv(stream, 4)
-
-	println(hlit, hdist, hclen)
+func readDynamicHuffmanTree(stream *bitstream) (literalsRoot *huffmanNode, distancesRoot *huffmanNode) {
 	/*
-
 		format is:
 		- header (hlit|hdist|hclen)
 		- (hclen+4) * 3 code lengths
@@ -19,8 +20,27 @@ func readHuffmanTree(stream *bitstream) {
 
 		hdist and hlit should help to define the distance and length codes
 	*/
-	//codeRanges := readCodesHRanges(stream, hclen)
-	//codeLengthsRoot := buildHuffmanTree(codeRanges)
+
+	var hlit = readBitsInv(stream, 5)
+	var hdist = readBitsInv(stream, 5)
+
+	// there are (hclen + 4) number of codes
+	var hclen = readBitsInv(stream, 4)
+
+	// read codes
+	codeBitLengths := readCodesBitLengths(stream, hclen)
+	codeHuffmanRoot := buildHuffmanTree(buildHRangesFromBitLengthsArray(codeBitLengths))
+
+	// read alphabet
+	alphabetsBitLengths := readAlphabetsBitLengths(stream, 258+hlit+hdist, codeHuffmanRoot)
+
+	// split alphabets into literals and distances
+	literals := alphabetsBitLengths[:hlit+258]
+	distances := alphabetsBitLengths[hlit+258:]
+	literalsRoot = buildHuffmanTree(buildHRangesFromBitLengthsArray(literals))
+	distancesRoot = buildHuffmanTree(buildHRangesFromBitLengthsArray(distances))
+
+	return
 }
 
 func readCodesBitLengths(stream *bitstream, hclen int) []int {
@@ -208,24 +228,30 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					length = extraLengthAddend[node.code - 265] + readBitsInv(stream, (node.code - 261)/4)
 				}
 
-				// get bits (5 bits)
-				distanceNode := distancesRoot
-				for distanceNode.code == -1 {
-					if nextBit(stream) != 0 {
-						distanceNode = distanceNode.one
-					} else {
-						distanceNode = distanceNode.zero
+				var dist int
+				if distancesRoot == nil {
+					// hardcoded distances
+					dist = readBitsInv(stream, 5)
+				} else {
+					// get bits (5 bits)
+					distanceNode := distancesRoot
+					for distanceNode.code == -1 {
+						if nextBit(stream) != 0 {
+							distanceNode = distanceNode.one
+						} else {
+							distanceNode = distanceNode.zero
+						}
+					}
+					dist = distanceNode.code
+					if dist > 3 {
+						dist = readBitsInv( stream, ( dist - 2 ) / 2 ) + extraDistAddend[dist-4]
 					}
 				}
-				dist := distanceNode.code
-				if dist > 3 {
-					dist = readBitsInv( stream, ( dist - 2 ) / 2 ) + extraDistAddend[dist-4]
-				}
-				backptr := len(buf)-dist-1
+				backPointer := len(buf)-dist-1
 				for length > 0 {
-					buf = append(buf, buf[backptr])
+					buf = append(buf, buf[backPointer])
 					length--
-					backptr++
+					backPointer++
 				}
 			} else {
 				panic("invalid code!")

@@ -23,7 +23,7 @@ func TestReadGzipHeader(t *testing.T) {
 }
 
 func TestReadGzipMetaData(t *testing.T) {
-	expectedGzipMetaData := GzipFile{
+	expectedGzipMetaData := GzipMetaData{
 		Header: GzipHeader{
 			ID: [2]byte{0x1F, 0x8B},
 			CompressionMethod: 0x08,
