@@ -131,5 +131,5 @@ func TestBuildHRangesFromBitLengthsArray(t *testing.T) {
 		{16, 6},
 		{18, 7},
 	}
-	assert.Equal(t, expectedHRanges, buildHRangesFromBitLengthsArray(bitLengths))
+	assert.Equal(t, expectedHRanges, runLengthEncoding(bitLengths))
 }

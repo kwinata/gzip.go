@@ -27,18 +27,45 @@ func readDynamicHuffmanTree(stream *bitstream) (literalsRoot *huffmanNode, dista
 	// there are (hclen + 4) number of codes
 	var hclen = readBitsInv(stream, 4)
 
+	if debugMode {
+		fmt.Printf("hlit %d, hdist %d, hclen %d\n", hlit, hdist, hclen)
+	}
+
 	// read codes
 	codeBitLengths := readCodesBitLengths(stream, hclen)
-	codeHuffmanRoot := buildHuffmanTree(buildHRangesFromBitLengthsArray(codeBitLengths))
+	codeHuffmanRoot := buildHuffmanTree(runLengthEncoding(codeBitLengths))
+
+	if debugMode {
+		fmt.Println("Codes Huffman Tree")
+		debugPrintHuffmanTree(codeHuffmanRoot, len(codeBitLengths))
+	}
 
 	// read alphabet
 	alphabetsBitLengths := readAlphabetsBitLengths(stream, 258+hlit+hdist, codeHuffmanRoot)
 
+
+
 	// split alphabets into literals and distances
 	literals := alphabetsBitLengths[:hlit+258]
-	distances := alphabetsBitLengths[hlit+258:]
-	literalsRoot = buildHuffmanTree(buildHRangesFromBitLengthsArray(literals))
-	distancesRoot = buildHuffmanTree(buildHRangesFromBitLengthsArray(distances))
+	distances := alphabetsBitLengths[hlit+257:]
+	literalsRLE := runLengthEncoding(literals)
+	distancesRLE := runLengthEncoding(distances)
+	literalsRoot = buildHuffmanTree(literalsRLE)
+	distancesRoot = buildHuffmanTree(distancesRLE)
+
+	if debugMode {
+		fmt.Println("alphabetsBitLengths", alphabetsBitLengths)
+		fmt.Println("literals", literals)
+		fmt.Println("literalsRLE", literalsRLE)
+		fmt.Println("distances", distances)
+		fmt.Println("distancesRLE", distancesRLE)
+
+		fmt.Println("Literals Huffman Tree")
+		debugPrintHuffmanTree(literalsRoot, hlit+258)
+
+		fmt.Println("Distances Huffman Tree")
+		debugPrintHuffmanTree(distancesRoot, hdist+1)
+	}
 
 	return
 }
@@ -190,30 +217,34 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 	}
 	node := literalsRoot
 	buf := make([]byte, 0)
-	debugNode := ""
-	debugCode := 0
+	var debugNode []byte
 	for {
 		if nextBit(stream) != 0 {
 			node = node.one
-			debugNode += "1"
-			debugCode <<= 1
-			debugCode |= 0b1
+			debugNode = append(debugNode, '1')
 		} else {
 			node = node.zero
-			debugNode += "0"
-			debugCode <<= 1
+			debugNode = append(debugNode, '0')
 		}
 		if node == nil {
 			panic(fmt.Errorf("%s is not a valid huffman code / path", debugNode))
 		}
 		if node.code != -1 {
-			debugNode = ""
-			debugCode = 0
+			if debugMode {
+				fmt.Printf("Matched literal node %s, with code %d\n", string(debugNode), node.code)
+			}
+			debugNode = nil
 			if node.code >= 0 && node.code < 256 {
 				// literal code
 				buf = append(buf, byte(node.code))
+				if debugMode {
+					fmt.Printf("Literal %s\n", string(rune(node.code)))
+				}
 			} else if node.code == 256 {
 				// stop code
+				if debugMode {
+					fmt.Println("stop code")
+				}
 				break
 			} else if node.code > 256 && node.code <= 285 {
 				// This is a back-pointer
@@ -227,6 +258,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 				} else {
 					length = extraLengthAddend[node.code - 265] + readBitsInv(stream, (node.code - 261)/4)
 				}
+
 
 				var dist int
 				if distancesRoot == nil {
@@ -244,10 +276,17 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					}
 					dist = distanceNode.code
 					if dist > 3 {
-						dist = readBitsInv( stream, ( dist - 2 ) / 2 ) + extraDistAddend[dist-4]
+						extraDist := readBitsInv( stream, ( dist - 2 ) / 2 )
+						if debugMode {
+							fmt.Printf("Extra distance, code is %d, extraDist %d, Addend is %d\n", dist, extraDist, extraDistAddend[dist-4])
+						}
+						dist = extraDist + extraDistAddend[dist-4]
 					}
 				}
 				backPointer := len(buf)-dist-1
+				if debugMode {
+					fmt.Printf("Backpointer with length %d and dist -%d, that is index %d (current buf length is %d)\n", length, dist, backPointer, len(buf))
+				}
 				for length > 0 {
 					buf = append(buf, buf[backPointer])
 					length--

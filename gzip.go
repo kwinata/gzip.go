@@ -105,7 +105,9 @@ func gzipInflate(file io.Reader) []byte {
 
 // TODO create test
 func readGzipFile(file io.Reader) {
-	_ = readGzipMetaData(file)
+	gzipMetadata := readGzipMetaData(file)
+	fmt.Println(gzipMetadata)
+	fmt.Println(string(gzipMetadata.Fname))
 	out := gzipInflate(bufio.NewReader(file))
-	fmt.Println(out)
+	fmt.Println(string(out))
 }

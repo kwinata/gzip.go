@@ -54,3 +54,4 @@ func TestReadGzipMetaData(t *testing.T) {
 	assert.Equal(t, expectedGzipMetaData.Fcomment, gzipFile.Fcomment)
 	assert.Equal(t, expectedGzipMetaData.Crc16, gzipFile.Crc16)
 }
+

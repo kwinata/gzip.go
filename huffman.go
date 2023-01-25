@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type huffmanNode struct {
 	code int // -1 for non-leaf nodes
 	zero *huffmanNode
@@ -16,8 +18,8 @@ type treeNode struct {
 	code int
 }
 
-func buildHRangesFromBitLengthsArray(bitLengths []int) (hRanges []huffmanRange) {
-	for i := 0; i < 19; i++ {
+func runLengthEncoding(bitLengths []int) (hRanges []huffmanRange) {
+	for i := 0; i < len(bitLengths); i++ {
 		if i == 0 || bitLengths[i] != bitLengths[i-1] {
 			hRanges = append(hRanges, huffmanRange{i, bitLengths[i]})
 		} else {
@@ -119,6 +121,16 @@ func traverseHuffmanTree(node *huffmanNode, prefix string, codeTable []string) {
 	}
 	if node.zero != nil {
 		traverseHuffmanTree(node.zero, prefix+"0", codeTable)
+	}
+}
+
+func debugPrintHuffmanTree(node *huffmanNode, memberCount int) {
+	codes := make([]string, memberCount)
+	traverseHuffmanTree(node, "", codes)
+	for i, v := range codes {
+		if v != "" {
+			fmt.Printf("code %d %s\n", i+1, v)
+		}
 	}
 }
 
