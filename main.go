@@ -1,19 +1,28 @@
 package main
 
-import "os"
+import (
+	"flag"
+	"fmt"
+	"os"
+)
 
 var (
-	debugMode = false
+	slowPrintMode = false
+	fileName string
 )
 
 // TODO create cli interface
 func main() {
-	if os.Getenv("DEBUG") == "true" {
-		debugMode = true
-	}
-	file, err := os.Open("attachment/genesis.txt.gz")
+	flag.StringVar(&fileName, "f", "", "-f [path to file name]")
+	flag.BoolVar(&slowPrintMode, "s", false, "-s to enable slow print mode")
+	flag.Parse()
+
+	file, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
-	readGzipFile(file)
+	out := readGzipFile(file)
+	if !slowPrintMode {
+		fmt.Print(string(out))
+	}
 }

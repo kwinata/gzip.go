@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -34,7 +35,7 @@ func TestReadCodes(t *testing.T) {
 }
 
 func TestReadAlphabetsBitLengths(t *testing.T) {
-	codesHRanges := []huffmanRange{
+	codesHRanges := []rleRange{
 		{0, 3},
 		{3, 0},
 		{5, 4},
@@ -87,10 +88,11 @@ func TestReadAlphabetsBitLengths(t *testing.T) {
 
 func TestInflateHuffmanCodesNoBackPointer(t *testing.T) {
 	// These are inefficient huffman trees. This is used to make it easier to create the test cases
-	literalsRoot := buildHuffmanTree([]huffmanRange{
-		{285, 16},
+	literalsRoot := buildHuffmanTree([]rleRange{
+		{0, 0},
+		{286, 16},
 	})
-	distancesRoot := buildHuffmanTree([]huffmanRange{
+	distancesRoot := buildHuffmanTree([]rleRange{
 		{30, 8},
 	})
 
@@ -109,10 +111,11 @@ func TestInflateHuffmanCodesNoBackPointer(t *testing.T) {
 
 func TestInflateHuffmanCodesWithLiteralBackPointer(t *testing.T) {
 	// These are inefficient huffman trees. This is used to make it easier to create the test cases
-	literalsRoot := buildHuffmanTree([]huffmanRange{
-		{285, 16},
+	literalsRoot := buildHuffmanTree([]rleRange{
+		{0, 0},
+		{286, 16},
 	})
-	distancesRoot := buildHuffmanTree([]huffmanRange{
+	distancesRoot := buildHuffmanTree([]rleRange{
 		{30, 8},
 	})
 
@@ -130,4 +133,18 @@ func TestInflateHuffmanCodesWithLiteralBackPointer(t *testing.T) {
 	}
 	outBytes := inflateHuffmanCodes(stream, literalsRoot, distancesRoot)
 	assert.Equal(t, []byte{0x00, 0x01, 0x02, 0x04, 0x01, 0x02, 0x04, 0x01, 0x03}, outBytes)
+}
+
+func TestSmokeAttachment(t *testing.T) {
+	file, err := os.Open("attachment/genesis.txt.gz")
+	if err != nil {
+		panic(err)
+	}
+	readGzipFile(file)
+
+	file, err = os.Open("attachment/gunzip.c.gz")
+	if err != nil {
+		panic(err)
+	}
+	readGzipFile(file)
 }

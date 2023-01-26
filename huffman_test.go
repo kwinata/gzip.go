@@ -9,11 +9,11 @@ import (
 
 func TestBuildHuffmanTree(t *testing.T) {
 	testCases := []struct {
-		hRanges              []huffmanRange
+		hRanges              []rleRange
 		expectedHuffmanCodes []string
 	}{
 		{
-			[]huffmanRange{
+			[]rleRange{
 				{1, 4},
 				{4, 6},
 				{6, 4},
@@ -53,7 +53,7 @@ func TestBuildHuffmanTree(t *testing.T) {
 			},
 		},
 		{
-			[]huffmanRange{
+			[]rleRange{
 				{0, 3},
 				{3, 0},
 				{5, 4},
@@ -109,27 +109,4 @@ func TestBuildHuffmanTree(t *testing.T) {
 		})
 	}
 
-}
-
-func TestBuildHRangesFromBitLengthsArray(t *testing.T) {
-	bitLengths := []int{
-		3, 0, 0, 0, 4, // 0-4
-		4, 3, 2, 3, 3, // 5-9
-		4, 5, 0, 0, 0, // 10-14
-		0, 6, 7, 7, // 15-18
-	}
-	expectedHRanges := []huffmanRange{
-		{0, 3},
-		{3, 0},
-		{5, 4},
-		{6, 3},
-		{7, 2},
-		{9, 3},
-		{10, 4},
-		{11, 5},
-		{15, 0},
-		{16, 6},
-		{18, 7},
-	}
-	assert.Equal(t, expectedHRanges, runLengthEncoding(bitLengths))
 }

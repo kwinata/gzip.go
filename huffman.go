@@ -8,30 +8,14 @@ type huffmanNode struct {
 	one  *huffmanNode
 }
 
-type huffmanRange struct {
-	end       int // set bitLength until index end
-	bitLength int
-}
 
 type treeNode struct {
 	len  int
 	code int
 }
 
-func runLengthEncoding(bitLengths []int) (hRanges []huffmanRange) {
-	println("Building RLE from array of length", len(bitLengths))
-	for i := 0; i < len(bitLengths); i++ {
-		if i == 0 || bitLengths[i] != bitLengths[i-1] {
-			hRanges = append(hRanges, huffmanRange{i, bitLengths[i]})
-		} else {
-			// if bitLength is the same as previous, simply increase the end pointer
-			hRanges[len(hRanges)-1].end = i
-		}
-	}
-	return hRanges
-}
 
-func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
+func buildHuffmanTree(hRanges []rleRange) *huffmanNode {
 	// 1. find max bit length
 	maxBitLength := 0
 	for _, hRange := range hRanges {
@@ -47,7 +31,7 @@ func buildHuffmanTree(hRanges []huffmanRange) *huffmanNode {
 	previousEnd := -1
 	for _, hRange := range hRanges {
 		if hRange.end-previousEnd <= 0 {
-			panic("The end of each huffmanRange must be strictly increasing")
+			panic("The end of each rleRange must be strictly increasing")
 		}
 		count := hRange.end - previousEnd
 		blCount[hRange.bitLength] += count

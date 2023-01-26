@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"io"
 )
 
@@ -103,9 +102,7 @@ func gzipInflate(file io.Reader) []byte {
 	return out
 }
 
-// TODO create test
-func readGzipFile(file io.Reader) {
+func readGzipFile(file io.Reader) []byte {
 	_ = readGzipMetaData(file)
-	out := gzipInflate(bufio.NewReader(file))
-	fmt.Println(string(out))
+	return gzipInflate(bufio.NewReader(file))
 }
