@@ -9,12 +9,12 @@ import (
 
 func TestReadGzipHeader(t *testing.T) {
 	expectedGzipHeader := GzipHeader{
-		ID: [2]byte{0x01, 0x02},
+		ID:                [2]byte{0x01, 0x02},
 		CompressionMethod: 0x03,
-		Flags: 0x04,
-		Mtime: [4]byte{0x05, 0x06, 0x07, 0x08},
-		ExtraFlags: 0x09,
-		OS: 0x0A,
+		Flags:             0x04,
+		Mtime:             [4]byte{0x05, 0x06, 0x07, 0x08},
+		ExtraFlags:        0x09,
+		OS:                0x0A,
 	}
 	file := bytes.NewReader([]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A})
 	gzipHeader := GzipHeader{}
@@ -25,18 +25,18 @@ func TestReadGzipHeader(t *testing.T) {
 func TestReadGzipMetaData(t *testing.T) {
 	expectedGzipMetaData := GzipMetaData{
 		Header: GzipHeader{
-			ID: [2]byte{0x1F, 0x8B},
+			ID:                [2]byte{0x1F, 0x8B},
 			CompressionMethod: 0x08,
-			Flags: 0x1F, // enable everything
-			Mtime: [4]byte{0x05, 0x06, 0x07, 0x08},
-			ExtraFlags: 0x09,
-			OS: 0x0A,
+			Flags:             0x1F, // enable everything
+			Mtime:             [4]byte{0x05, 0x06, 0x07, 0x08},
+			ExtraFlags:        0x09,
+			OS:                0x0A,
 		},
-		Xlen: 0x0008, // 8 bytes of extra data
-		Extra: []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07},
-		Fname: []byte{0x61, 0x62, 0x63},
+		Xlen:     0x0008, // 8 bytes of extra data
+		Extra:    []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07},
+		Fname:    []byte{0x61, 0x62, 0x63},
 		Fcomment: []byte{0x65, 0x66, 0x67},
-		Crc16: uint16(0xABCD),
+		Crc16:    uint16(0xABCD),
 	}
 	metadata := []byte{
 		0x1F, 0x8B, 0x08, 0x1F, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, // header
@@ -54,4 +54,3 @@ func TestReadGzipMetaData(t *testing.T) {
 	assert.Equal(t, expectedGzipMetaData.Fcomment, gzipFile.Fcomment)
 	assert.Equal(t, expectedGzipMetaData.Crc16, gzipFile.Crc16)
 }
-

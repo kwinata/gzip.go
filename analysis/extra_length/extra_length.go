@@ -10,9 +10,9 @@ var extraLengthAddend = []int{
 
 func main() {
 	for code := 265; code < 285; code++ {
-		extraBitsLength := (code - 261)/4
+		extraBitsLength := (code - 261) / 4
 		extraLength := extraLengthAddend[code-265]
-		fmt.Printf("Code: %d, base value: %d, max_value: %d\n", code, extraLength, extraLength + (1 << extraBitsLength) - 1)
+		fmt.Printf("Code: %d, base value: %d, max_value: %d\n", code, extraLength, extraLength+(1<<extraBitsLength)-1)
 	}
 }
 
@@ -37,4 +37,4 @@ Code: 281, base value: 131, max_value: 162
 Code: 282, base value: 163, max_value: 194
 Code: 283, base value: 195, max_value: 226
 Code: 284, base value: 227, max_value: 258
- */
+*/

@@ -16,12 +16,12 @@ type GzipHeader struct {
 }
 
 type GzipMetaData struct {
-	Header GzipHeader
-	Xlen int16
-	Extra []byte
-	Fname []byte
+	Header   GzipHeader
+	Xlen     int16
+	Extra    []byte
+	Fname    []byte
 	Fcomment []byte
-	Crc16 uint16
+	Crc16    uint16
 }
 
 const FTEXT byte = 0x01

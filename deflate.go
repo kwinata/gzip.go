@@ -119,39 +119,39 @@ Format is always Length|Distance
 
 Distance codes:
 Can range from 1-32768
- */
+*/
 
 func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distancesRoot *huffmanNode) []byte {
 	/*
-	Now, if there are only 285-257=28 length codes, that doesn't give the LZ77 compressor much room to
-	reuse previous input. Instead, the deflate format uses the 28 pointer codes as an indication to the
-	decompressor as to how many extra bits follow which indicate the actual length of the match.
-	 */
+		Now, if there are only 285-257=28 length codes, that doesn't give the LZ77 compressor much room to
+		reuse previous input. Instead, the deflate format uses the 28 pointer codes as an indication to the
+		decompressor as to how many extra bits follow which indicate the actual length of the match.
+	*/
 
 	/*
-	What's with this extraLengthAddend?
-	It is used as: length = readBitsInv(stream, (node.code - 261)/4) + extraLengthAddend[node.code - 265]
-	for node.code in [265, 285)
-	Code: 265, base value: 11, max_value: 12
-	Code: 266, base value: 13, max_value: 14
-	Code: 267, base value: 15, max_value: 16
-	Code: 268, base value: 17, max_value: 18
-	Code: 269, base value: 19, max_value: 22
-	Code: 270, base value: 23, max_value: 26
-	Code: 271, base value: 27, max_value: 30
-	Code: 272, base value: 31, max_value: 34
-	Code: 273, base value: 35, max_value: 42
-	Code: 274, base value: 43, max_value: 50
-	Code: 275, base value: 51, max_value: 58
-	Code: 276, base value: 59, max_value: 66
-	Code: 277, base value: 67, max_value: 82
-	Code: 278, base value: 83, max_value: 98
-	Code: 279, base value: 99, max_value: 114
-	Code: 280, base value: 115, max_value: 130
-	Code: 281, base value: 131, max_value: 162
-	Code: 282, base value: 163, max_value: 194
-	Code: 283, base value: 195, max_value: 226
-	Code: 284, base value: 227, max_value: 258
+		What's with this extraLengthAddend?
+		It is used as: length = readBitsInv(stream, (node.code - 261)/4) + extraLengthAddend[node.code - 265]
+		for node.code in [265, 285)
+		Code: 265, base value: 11, max_value: 12
+		Code: 266, base value: 13, max_value: 14
+		Code: 267, base value: 15, max_value: 16
+		Code: 268, base value: 17, max_value: 18
+		Code: 269, base value: 19, max_value: 22
+		Code: 270, base value: 23, max_value: 26
+		Code: 271, base value: 27, max_value: 30
+		Code: 272, base value: 31, max_value: 34
+		Code: 273, base value: 35, max_value: 42
+		Code: 274, base value: 43, max_value: 50
+		Code: 275, base value: 51, max_value: 58
+		Code: 276, base value: 59, max_value: 66
+		Code: 277, base value: 67, max_value: 82
+		Code: 278, base value: 83, max_value: 98
+		Code: 279, base value: 99, max_value: 114
+		Code: 280, base value: 115, max_value: 130
+		Code: 281, base value: 131, max_value: 162
+		Code: 282, base value: 163, max_value: 194
+		Code: 283, base value: 195, max_value: 226
+		Code: 284, base value: 227, max_value: 258
 	*/
 	extraLengthAddend := []int{
 		11, 13, 15, 17, 19, 23, 27,
@@ -160,34 +160,34 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 	}
 
 	/*
-	We only support until distance code 29 instead of until 31 because it's sufficient to describe until 32KiB distance
-	Dist Code: 4, base value: 4, max_value: 5
-	Dist Code: 5, base value: 6, max_value: 7
-	Dist Code: 6, base value: 8, max_value: 11
-	Dist Code: 7, base value: 12, max_value: 15
-	Dist Code: 8, base value: 16, max_value: 23
-	Dist Code: 9, base value: 24, max_value: 31
-	Dist Code: 10, base value: 32, max_value: 47
-	Dist Code: 11, base value: 48, max_value: 63
-	Dist Code: 12, base value: 64, max_value: 95
-	Dist Code: 13, base value: 96, max_value: 127
-	Dist Code: 14, base value: 128, max_value: 191
-	Dist Code: 15, base value: 192, max_value: 255
-	Dist Code: 16, base value: 256, max_value: 383
-	Dist Code: 17, base value: 384, max_value: 511
-	Dist Code: 18, base value: 512, max_value: 767
-	Dist Code: 19, base value: 768, max_value: 1023
-	Dist Code: 20, base value: 1024, max_value: 1535
-	Dist Code: 21, base value: 1536, max_value: 2047
-	Dist Code: 22, base value: 2048, max_value: 3071
-	Dist Code: 23, base value: 3072, max_value: 4095
-	Dist Code: 24, base value: 4096, max_value: 6143
-	Dist Code: 25, base value: 6144, max_value: 8191
-	Dist Code: 26, base value: 8192, max_value: 12287
-	Dist Code: 27, base value: 12288, max_value: 16383
-	Dist Code: 28, base value: 16384, max_value: 24575
-	Dist Code: 29, base value: 24576, max_value: 32767
-	 */
+		We only support until distance code 29 instead of until 31 because it's sufficient to describe until 32KiB distance
+		Dist Code: 4, base value: 4, max_value: 5
+		Dist Code: 5, base value: 6, max_value: 7
+		Dist Code: 6, base value: 8, max_value: 11
+		Dist Code: 7, base value: 12, max_value: 15
+		Dist Code: 8, base value: 16, max_value: 23
+		Dist Code: 9, base value: 24, max_value: 31
+		Dist Code: 10, base value: 32, max_value: 47
+		Dist Code: 11, base value: 48, max_value: 63
+		Dist Code: 12, base value: 64, max_value: 95
+		Dist Code: 13, base value: 96, max_value: 127
+		Dist Code: 14, base value: 128, max_value: 191
+		Dist Code: 15, base value: 192, max_value: 255
+		Dist Code: 16, base value: 256, max_value: 383
+		Dist Code: 17, base value: 384, max_value: 511
+		Dist Code: 18, base value: 512, max_value: 767
+		Dist Code: 19, base value: 768, max_value: 1023
+		Dist Code: 20, base value: 1024, max_value: 1535
+		Dist Code: 21, base value: 1536, max_value: 2047
+		Dist Code: 22, base value: 2048, max_value: 3071
+		Dist Code: 23, base value: 3072, max_value: 4095
+		Dist Code: 24, base value: 4096, max_value: 6143
+		Dist Code: 25, base value: 6144, max_value: 8191
+		Dist Code: 26, base value: 8192, max_value: 12287
+		Dist Code: 27, base value: 12288, max_value: 16383
+		Dist Code: 28, base value: 16384, max_value: 24575
+		Dist Code: 29, base value: 24576, max_value: 32767
+	*/
 	extraDistAddend := []int{
 		4, 6, 8, 12, 16, 24, 32, 48,
 		64, 96, 128, 192, 256, 384,
@@ -213,7 +213,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 			if slowPrintMode {
 				time.Sleep(50 * time.Millisecond)
 			}
-			node = &huffmanNode{code: node.code -1}
+			node = &huffmanNode{code: node.code - 1}
 			debugNode = nil
 			if node.code >= 0 && node.code < 256 {
 				// literal code
@@ -234,9 +234,8 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 				} else if node.code == 285 {
 					length = 258 // this seems to be for a short cut for the 284? not sure why don't we use 259 instead?
 				} else {
-					length = extraLengthAddend[node.code - 265] + readBitsInv(stream, (node.code - 261)/4)
+					length = extraLengthAddend[node.code-265] + readBitsInv(stream, (node.code-261)/4)
 				}
-
 
 				var dist int
 				if distancesRoot == nil {
@@ -254,11 +253,11 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					}
 					dist = distanceNode.code
 					if dist > 3 {
-						extraDist := readBitsInv( stream, ( dist - 2 ) / 2 )
+						extraDist := readBitsInv(stream, (dist-2)/2)
 						dist = extraDist + extraDistAddend[dist-4]
 					}
 				}
-				backPointer := len(buf)-dist-1
+				backPointer := len(buf) - dist - 1
 				bufString := string(buf)
 				if bufString == "" {
 

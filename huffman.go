@@ -8,12 +8,10 @@ type huffmanNode struct {
 	one  *huffmanNode
 }
 
-
 type treeNode struct {
 	len  int
 	code int
 }
-
 
 func buildHuffmanTree(hRanges []rleRange) *huffmanNode {
 	// 1. find max bit length

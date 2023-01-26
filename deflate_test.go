@@ -126,7 +126,7 @@ func TestInflateHuffmanCodesWithLiteralBackPointer(t *testing.T) {
 			0x00, 0x40, // 0x02
 			0x00, 0x20, // 0x04
 			0x80, 0x40, // Code 258, back-pointer length of 4
-			0x40, // distance code 2,
+			0x40,       // distance code 2,
 			0x00, 0xC0, // 0x03
 			0x80, 0x00, // stop code
 		}),

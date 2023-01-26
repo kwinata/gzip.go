@@ -15,9 +15,9 @@ func main() {
 	// why don't we support higher distance?
 	// Oh this is because, this way, we can support until 32768 distance, which is exactly 2**15, 32KiB of data
 	for dist := 4; dist < 30; dist++ {
-		extraDistLength := (dist - 2)/2
+		extraDistLength := (dist - 2) / 2
 		extraDist := extraDistAddends[dist-4]
-		fmt.Printf("Dist Code: %d, base value: %d, max_value: %d\n", dist, extraDist, extraDist + (1 << extraDistLength) - 1)
+		fmt.Printf("Dist Code: %d, base value: %d, max_value: %d\n", dist, extraDist, extraDist+(1<<extraDistLength)-1)
 	}
 }
 
@@ -48,4 +48,4 @@ Dist Code: 26, base value: 8192, max_value: 12287
 Dist Code: 27, base value: 12288, max_value: 16383
 Dist Code: 28, base value: 16384, max_value: 24575
 Dist Code: 29, base value: 24576, max_value: 32767
- */
+*/

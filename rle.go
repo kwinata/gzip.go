@@ -1,6 +1,5 @@
 package main
 
-
 type rleRange struct {
 	end       int // set bitLength until index end
 	bitLength int

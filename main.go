@@ -8,7 +8,7 @@ import (
 
 var (
 	slowPrintMode = false
-	fileName string
+	fileName      string
 )
 
 // TODO create cli interface
