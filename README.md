@@ -1,6 +1,3 @@
 # gzip.go
 
-Code dependency:
-
-- deflate -> huffman
-- deflate -> bitsream
+Largely derived from http://www.infinitepartitions.com/art001.html
