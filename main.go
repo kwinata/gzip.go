@@ -11,7 +11,7 @@ func main() {
 	if os.Getenv("DEBUG") == "true" {
 		debugMode = true
 	}
-	file, err := os.Open("attachment/gunzip.c.gz")
+	file, err := os.Open("attachment/genesis.txt.gz")
 	if err != nil {
 		panic(err)
 	}

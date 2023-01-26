@@ -19,6 +19,7 @@ type treeNode struct {
 }
 
 func runLengthEncoding(bitLengths []int) (hRanges []huffmanRange) {
+	println("Building RLE from array of length", len(bitLengths))
 	for i := 0; i < len(bitLengths); i++ {
 		if i == 0 || bitLengths[i] != bitLengths[i-1] {
 			hRanges = append(hRanges, huffmanRange{i, bitLengths[i]})
