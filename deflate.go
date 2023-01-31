@@ -30,6 +30,12 @@ func readDynamicHuffmanTree(stream *bitstream) (literalsRoot *huffmanNode, dista
 	// there are (hclen + 4) number of codes
 	var hclen = readBitsInv(stream, 4)
 
+	if explanationMode {
+		fmt.Printf("hlit: %d (number of (extra) length literals)\n", hlit)
+		fmt.Printf("hdist: %d (number of distance codes)\n", hdist)
+		fmt.Printf("hclen: %d (number of huffman code length for the first tree)\n", hclen)
+	}
+
 	// read codes
 	codeBitLengths := readCodesBitLengths(stream, hclen)
 	codeHuffmanRoot := buildHuffmanTree(runLengthEncoding(codeBitLengths))
@@ -258,6 +264,9 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					}
 				}
 				backPointer := len(buf) - dist - 1
+				if slowPrintMode && backPointerMode {
+					fmt.Printf("<%d,%d>(", backPointer, length)
+				}
 				bufString := string(buf)
 				if bufString == "" {
 
@@ -269,6 +278,9 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					}
 					length--
 					backPointer++
+				}
+				if slowPrintMode && backPointerMode {
+					fmt.Printf(")")
 				}
 			} else {
 				panic("invalid code!")

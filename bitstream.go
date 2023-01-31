@@ -1,6 +1,9 @@
 package main
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 type bitstream struct {
 	source io.ByteReader
@@ -35,6 +38,9 @@ func readBitsInv(stream *bitstream, count int) (value int) {
 	for i := 0; i < count; i++ {
 		bit := nextBit(stream)
 		value |= int(bit) << i // set as MSB
+	}
+	if explanationMode {
+		fmt.Printf("-- reading %d bits, value is %x\n", count, value)
 	}
 	return value
 }

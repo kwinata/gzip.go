@@ -8,6 +8,8 @@ import (
 
 var (
 	slowPrintMode = false
+	backPointerMode = false
+	explanationMode = false
 	fileName      string
 )
 
@@ -15,6 +17,8 @@ var (
 func main() {
 	flag.StringVar(&fileName, "f", "", "-f [path to file name]")
 	flag.BoolVar(&slowPrintMode, "s", false, "-s to enable slow print mode")
+	flag.BoolVar(&explanationMode, "e", false, "-e to enable explanation")
+	flag.BoolVar(&backPointerMode, "bp", false, "-bp to enable back pointer (only effective in slow print mode")
 	flag.Parse()
 
 	file, err := os.Open(fileName)

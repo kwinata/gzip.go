@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -46,6 +47,9 @@ func readCString(file io.Reader) (buf []byte) {
 
 func readGzipMetaData(file io.Reader) GzipMetaData {
 	gzipMetaData := GzipMetaData{}
+	if explanationMode {
+		fmt.Println("reading ")
+	}
 	if err := binary.Read(file, binary.LittleEndian, &gzipMetaData.Header); err != nil {
 		panic(err)
 	}
@@ -90,9 +94,15 @@ func gzipInflate(file io.Reader) []byte {
 		case 0b00:
 			panic("uncompressed block type not supported")
 		case 0b01:
+			if explanationMode {
+				fmt.Println("block 0b01, using fixed huffman tree")
+			}
 			literalsRoot := readFixedHuffmanTree(stream)
 			out = append(out, inflateHuffmanCodes(stream, literalsRoot, nil)...)
 		case 0b10:
+			if explanationMode {
+				fmt.Println("block 0b10, using dynamic huffman tree")
+			}
 			literalsRoot, distancesRoot := readDynamicHuffmanTree(stream)
 			out = append(out, inflateHuffmanCodes(stream, literalsRoot, distancesRoot)...)
 		default:
@@ -104,5 +114,8 @@ func gzipInflate(file io.Reader) []byte {
 
 func readGzipFile(file io.Reader) []byte {
 	_ = readGzipMetaData(file)
+	if explanationMode {
+		fmt.Println("Discarding metadata")
+	}
 	return gzipInflate(bufio.NewReader(file))
 }
