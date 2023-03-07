@@ -225,6 +225,9 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 			debugNode = nil
 			if node.code >= 0 && node.code < 256 {
 				// literal code
+				literalCount += 1
+				totalBytes += 1
+
 				buf = append(buf, byte(node.code))
 				if shouldPrintInline {
 					fmt.Printf("%s", string(rune(node.code)))
@@ -234,6 +237,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 				break
 			} else if node.code > 256 && node.code <= 285 {
 				// This is a back-pointer
+				backPointerCount += 1
 
 				// get length
 				var length int
@@ -269,11 +273,8 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 				if shouldPrintInline && backPointerMode {
 					fmt.Printf("<%d,%d>(", backPointer, length)
 				}
-				bufString := string(buf)
-				if bufString == "" {
-
-				}
 				for length > 0 {
+					totalBytes += 1
 					buf = append(buf, buf[backPointer])
 					if shouldPrintInline {
 						fmt.Printf("%s", string(rune(buf[backPointer])))

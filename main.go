@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 )
 
@@ -12,8 +13,12 @@ var (
 	fileName        string
 )
 
+var literalCount, backPointerCount, totalBytes int
+
 // TODO create cli interface
 func main() {
+	literalCount, backPointerCount, totalBytes = 0, 0, 0
+
 	flag.StringVar(&fileName, "f", "", "-f [path to file name]")
 	flag.BoolVar(&slowPrintMode, "s", false, "-s to enable slow print mode")
 	flag.BoolVar(&explanationMode, "e", false, "-e to enable explanation")
@@ -25,4 +30,6 @@ func main() {
 		panic(err)
 	}
 	_ = readGzipFile(file)
+
+	fmt.Printf("\n\nSummary Report: literalCount %d, backPointerCount %d, totalBytes %d\n", literalCount, backPointerCount, totalBytes)
 }
