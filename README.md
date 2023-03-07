@@ -1,22 +1,6 @@
 # gzip.go
 
 Largely derived from http://www.infinitepartitions.com/art001.html
-
-## Building blocks / techniques
-
-- Huffman encoding
-- RLE
-- un-ordered lay out of alphabets, putting rarely-to-use alphabet at the back
-- Dynamic length integer values (used for encoding back-pointer copy length & distance)
-- Values need not to start from zero if vertain minimum value is guaranteed
-
-Useful ideas:
-
-- laid out the process flow as a state diagram
-
-Presentation flow:
-- build a schema flow diagram. But instead of explaining everything directly, explain parts of it first, then slowly
-build up to get the final result
   
 ## Technique 1: Huffman Encoding
 
@@ -169,66 +153,9 @@ Thus, we will get encoding of:
 
 Read more: https://computationstructures.org/lectures/info/info.html (Entropy, Huffman Algorithm)
 
-## Technique 2: Run-length Encoding
+## Technique 2: LZ77
 
-RLE is a fairly simple compression mechanism for data that have a lot of consecutive values, for example:
-
-```
-WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW
-```
-
-Can be encoded with RLE as:
-
-```
-12W1B12W3B24W1B14W
-```
-
-More care will be needed in the actual encoding system to differentiate the "counter" from the "symbol"
-
-One example of such mechanism could be:
-
-(this also optimize for if we have runs of literals, we don't waste on writing the header overhead)
-
-```
-buf = []
-c = reader.next()
-while c != EOF:
-    if MSB(c) == 0:  # Most Significant Bit
-        literal_count = LSB(c, 7)  # Least-Significant Bit
-        for i in range(literal_count):
-            buf.append(reader.next())
-    if MSB(c) == 0:
-        repeat_count = LSB(c, 7)
-        val = reader.next()
-        for i in range(repeat_count):
-            buf.append(reader.next())
-    c = reader.next()
-```
-
-Such that strings like  `AAAABCDEFGGGGGGGGGGGGGGGGGGGG` can be encoded as:
-
-```
-[
-    0x84 (set the MSB to be 1, and the 7-bit LSB is 4),
-    'A',
-    0x05 (MSB is 0, there will be 5 literals),
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    0x94 (set the MSB to be 1, add 0x14 (20 repetitions) of the following:),
-    'G',
-]
-```
-
-with a total of 10 bytes.
-
-The actual encoding system can differ, this is just one example implementation of RLE.
-
-## LZ77
-
-LZ77 is a data compression algorithm published by Lempel and Ziv in 1988 (not to be confused with LZ78, which is similar but slightly different). In principle, LZ77 maintains a sliding window where we can reference some earlier data in the sliding window.
+LZ77 is a data compression algorithm published by Lempel and Ziv in 1977 (not to be confused with LZ78, which is similar but slightly different). In principle, LZ77 maintains a sliding window where we can reference some earlier data in the sliding window.
 
 One implementation could be to have triplets of data: `(back pointer, copy-length, next_byte)` as such:
 
@@ -236,5 +163,66 @@ One implementation could be to have triplets of data: `(back pointer, copy-lengt
 
 Notice the triplet like `(3, 4, b)`, the string `aaca` is a self-reference. (the last `a` in the blue box refers to first `a` in the blue box). This always happens when `copy-length` is bigger than `back-pointer`.
 
-The actual LZ77 implementation used in GZIP slightly more complicated for more efficient use of space.
+The actual LZ77 implementation used in GZIP slightly more complicated for more efficient use of space. But we can discuss it later.
 
+
+
+## Step-by-step
+
+Consider we have this body of text (char count 1408 chars)
+
+```
+So shaken as we are, so wan with care,
+Find we a time for frighted peace to pant,
+And breathe short-winded accents of new broils
+To be commenced in strands afar remote.
+No more the thirsty entrance of this soil
+Shall daub her lips with her own children's blood;
+Nor more shall trenching war channel her fields,
+Nor bruise her flowerets with the armed hoofs
+Of hostile paces: those opposed eyes,
+Which, like the meteors of a troubled heaven,
+All of one nature, of one substance bred,
+Did lately meet in the intestine shock
+And furious close of civil butchery
+Shall now, in mutual well-beseeming ranks,
+March all one way and be no more opposed
+Against acquaintance, kindred and allies:
+The edge of war, like an ill-sheathed knife,
+No more shall cut his master. Therefore, friends,
+As far as to the sepulchre of Christ,
+Whose soldier now, under whose blessed cross
+We are impressed and engaged to fight,
+Forthwith a power of English shall we levy;
+Whose arms were moulded in their mothers' womb
+To chase these pagans in those holy fields
+Over whose acres walk'd those blessed feet
+Which fourteen hundred years ago were nail'd
+For our advantage on the bitter cross.
+But this our purpose now is twelve month old,
+And bootless 'tis to tell you we will go:
+Therefore we meet not now. Then let me hear
+Of you, my gentle cousin Westmoreland,
+What yesternight our council did decree
+In forwarding this dear expedience.
+```
+
+After applying LZ77 (1988 chars): // todo add stats for back of the envelop maths
+```
+So shaken as we are, so wan with c<16,4>
+Find<12,5> time for frighted peace to pant,
+A<41,3>breathe<2,3>ort-w<40,3><64,3>accents of new<85,3>oils
+To be commenc<104,3>in strands afar remote.
+No mor<71,3>h<175,4>irsty <110,3><150,3><70,3><115,3><181,3>s<20,3>il
+Shall daub her lips<27,6><222,4>own children's blood;<168,3>r<171,6>s<212,5>t<249,3><244,3>ng<23,3>r<243,3>annel<235,5>fields,<261,5>bruise<298,6>loweret<229,7><177,4>arm<142,3>hoofs
+Of<350,3>stile<75,3>ces:<340,3>o<319,3>opp<377,3>d eye<308,3>Which,<225,3>k<175,6>meteor<113,5><47,3>roubl<348,4>eaven<80,3><274,3><419,3>one natu<17,4><445,7>subst<193,5><86,3>d,
+Did lately<410,3>et<144,4><407,4>inte<362,3>n<92,5>ck<81,5>furious cl<377,5>f civil butc<322,3>y<210,7>now,<498,4>mutual<43,3>ll-beseem<283,4><192,3>k<392,3>March <560,4><463,4>way a<83,4><450,3><170,7><381,7>
+Against<106,3>qu<644,3><471,5>, k<101,3>r<104,4><620,3><607,3>i<371,3>
+T<503,3>edg<538,5><287,3><400,7><25,3>i<581,3>sh<88,5>d knife,<168,9><271,6>cut <202,4>master. <684,3>re<54,3><661,3><58,3>en<307,4>As <157,4><10,3><73,3><90,5>epulchr<691,5>Christ<393,4><536,4>soldi<323,3><564,5>u<102,3>r w<818,5><428,3>s<385,4>cross
+W<14,5> impr<850,6><672,4>engag<876,3><789,3>f<60,4><37,3><96,3>h<336,5>a p<328,4><805,4>English<736,7><44,3>levy;<816,7><345,3><11,4><866,3>mould<142,6><792,3>i<264,4><972,3>rs' womb<128,4><291,3>s<405,5>s<366,4>gans<968,6><947,4>ho<491,3><303,6>
+Ov<839,9>ac<872,3><695,3>lk'd<1016,7><848,8>f<495,3><394,6><53,3>urte<7,3>hu<666,6>yea<416,3>ago<955,6>nail'd<900,4> <1085,3> adv<77,3>a<690,4><500,6>bit<754,3><855,6>.
+B<744,3><201,5><1127,4>pur<636,4><830,4> <1168,3>t<579,3>v<959,4>n<908,3><824,3><80,7>oot<1066,4> 'ti<787,6><580,3> you<935,4>w<709,3> go<682,5><762,6><1237,4><494,5>no<1266,4>w<757,5>n<938,3>t<1262,3><432,4>r<356,4><1234,3>, my g<189,3>l<133,4>us<1014,3>W<509,3><732,4>l<879,3><815,4>at<1100,3><753,4>n<895,4><1170,5><1312,3>nc<546,3>d<484,3>de<1047,3>e
+In<53,4><696,3>d<590,4><1166,5>d<1290,3> expe<826,3><659,3>.
+```
+
+Note that this encoding of `<back_pointer,length>` is not the most performant one and also not valid if we have the literal `<` (or at least need to escape)

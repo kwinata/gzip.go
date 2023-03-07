@@ -2,15 +2,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 )
 
 var (
-	slowPrintMode = false
+	slowPrintMode   = false
 	backPointerMode = false
 	explanationMode = false
-	fileName      string
+	fileName        string
 )
 
 // TODO create cli interface
@@ -25,8 +24,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	out := readGzipFile(file)
-	if !slowPrintMode {
-		fmt.Print(string(out))
-	}
+	_ = readGzipFile(file)
 }

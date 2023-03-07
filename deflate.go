@@ -48,7 +48,7 @@ func readDynamicHuffmanTree(stream *bitstream) (literalsRoot *huffmanNode, dista
 	// split alphabets into literals and distances
 	literals := alphabetsBitLengths[:hlit+257]
 	distances := alphabetsBitLengths[hlit+257:]
-	literalsRLE := runLengthEncoding(append([]int{0}, literals...)) // I don't know why is this needed. 1-indexing? XD
+	literalsRLE := runLengthEncoding(append([]int{0}, literals...)) // Seems to be using 1-indexing
 	distancesRLE := runLengthEncoding(distances)
 	literalsRoot = buildHuffmanTree(literalsRLE)
 	distancesRoot = buildHuffmanTree(distancesRLE)
@@ -126,6 +126,8 @@ Format is always Length|Distance
 Distance codes:
 Can range from 1-32768
 */
+
+var shouldPrintInline = true
 
 func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distancesRoot *huffmanNode) []byte {
 	/*
@@ -216,7 +218,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 			panic(fmt.Errorf("%s is not a valid huffman code / path", debugNode))
 		}
 		if node.code != -1 {
-			if slowPrintMode {
+			if shouldPrintInline && slowPrintMode {
 				time.Sleep(50 * time.Millisecond)
 			}
 			node = &huffmanNode{code: node.code - 1}
@@ -224,7 +226,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 			if node.code >= 0 && node.code < 256 {
 				// literal code
 				buf = append(buf, byte(node.code))
-				if slowPrintMode {
+				if shouldPrintInline {
 					fmt.Printf("%s", string(rune(node.code)))
 				}
 			} else if node.code == 256 {
@@ -264,7 +266,7 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 					}
 				}
 				backPointer := len(buf) - dist - 1
-				if slowPrintMode && backPointerMode {
+				if shouldPrintInline && backPointerMode {
 					fmt.Printf("<%d,%d>(", backPointer, length)
 				}
 				bufString := string(buf)
@@ -273,13 +275,13 @@ func inflateHuffmanCodes(stream *bitstream, literalsRoot *huffmanNode, distances
 				}
 				for length > 0 {
 					buf = append(buf, buf[backPointer])
-					if slowPrintMode {
+					if shouldPrintInline {
 						fmt.Printf("%s", string(rune(buf[backPointer])))
 					}
 					length--
 					backPointer++
 				}
-				if slowPrintMode && backPointerMode {
+				if shouldPrintInline && backPointerMode {
 					fmt.Printf(")")
 				}
 			} else {
