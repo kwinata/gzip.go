@@ -43,8 +43,6 @@ func readDynamicHuffmanTree(stream *bitstream) (literalsRoot *huffmanNode, dista
 	// read alphabet
 	alphabetsBitLengths := readAlphabetsBitLengths(stream, 258+hlit+hdist, codeHuffmanRoot)
 
-	alphabetsBitLengths = append(alphabetsBitLengths)
-
 	// split alphabets into literals and distances
 	literals := alphabetsBitLengths[:hlit+257]
 	distances := alphabetsBitLengths[hlit+257:]

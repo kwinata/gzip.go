@@ -153,6 +153,130 @@ Thus, we will get encoding of:
 
 Read more: https://computationstructures.org/lectures/info/info.html (Entropy, Huffman Algorithm)
 
+
+## Huffman Trees Encoding
+
+So far we have only discussed huffman trees in the abstract or in your program's memory. How do we actually encode this? The naivest solution will simply be listing out the symbol and encoding one after another:
+
+| Symbol | Encoding |
+|--------|----------|
+| `A`    | `11`     |
+| `B`    | `0`      |
+| `C`    | `100`    |
+| `D`    | `101`    |
+
+But this is not very efficient. One improvement that we can do is to skip listing out the symbol instead because we can pre-agree on what are the symbols are.
+
+| Encoding |
+|----------|
+| `11`     |
+| `0`      |
+| `100`    |
+| `101`    |
+
+Next thing that we can improve, is actually we don't have to provide all the encoding, simply giving the bitlength is enough to build a reproducible tree. **This is possible because what really matters in huffman tree is the length for each symbol encoding, not the structure of the tree itself.**
+
+| Encoding |
+|----------|
+| 2        |
+| 1        |
+| 3        |
+| 3        |
+
+Here's one way to fill it
+
+``` text
+  0000: 0
+  0001: 1
+101100: 2 <- start a new sequence at (10101 + 1) << 1
+101101: 3
+101110: 4
+  0010: 5 <- pick up four-bit sequence where it left off
+  0011: 6
+ 01110: 7 <- start a new sequence at (0110 + 1) << 1
+ 01111: 8
+ 10000: 9
+ 10001: 10
+ 10010: 11
+ 10011: 12
+ 10100: 13
+ 10101: 14
+101111: 15 <- pick up six-bit sequence where it left off
+110000: 16
+110001: 17
+110010: 18
+  0100: 19 <- pick up four-bit sequence where it left off
+  0101: 20
+  0110: 21
+110011: 22 <- pick up six-bit sequence where it left off
+110100: 23
+110101: 24
+110110: 25
+110111: 26
+```
+
+The next step is to, instead of providing all the bit lengths, we can provide it as RLE instead:
+
+``` go
+func TestRLE(t *testing.T) {
+	values := []int{
+		3, 0, 0, 0, 4, // 0-4
+		4, 3, 2, 3, 3, // 5-9
+		4, 5, 0, 0, 0, // 10-14
+		0, 6, 7, 7, // 15-18
+	}
+	expectedRanges := []rleRange{
+		{0, 3},
+		{3, 0},
+		{5, 4},
+		{6, 3},
+		{7, 2},
+		{9, 3},
+		{10, 4},
+		{11, 5},
+		{15, 0},
+		{16, 6},
+		{18, 7},
+	}
+	assert.Equal(t, expectedRanges, runLengthEncoding(values))
+}
+```
+
+If you are worried about RLE having more overhead than the benefit, note that we have about 285 codes in total in GZIP, which probably will have bit lengths of up to 10. We should have more consecutive values, especially where there's a lot of 0s.
+
+The actual RLE system used in GZIP:
+
+``` go
+for i < alphabetCount {
+    code, _ := getCode(stream, codeLengthsRoot)
+    // 0-15: literal (4 bits)
+    // 16: repeat the previous character n times
+    // 17: insert n 0's (3 bit specified), max value is 10
+    // 18: insert n 0's (7 bit specifier), add 11 (because it's the max of code 17)
+    if code == 16 {
+        repeatLength := readBitsInv(stream, 2) + 3
+        for j := 0; j < repeatLength; j++ {
+            alphabetBitLengths[i] = alphabetBitLengths[i-1]
+            i++
+        }
+    } else if code == 17 || code == 18 {
+        var repeatLength int
+        if code == 17 {
+            repeatLength = readBitsInv(stream, 3) + 3
+        } else {
+            repeatLength = readBitsInv(stream, 7) + 11
+        }
+        for j := 0; j < repeatLength; j++ {
+            alphabetBitLengths[i] = 0
+            i++
+        }
+    } else {
+        alphabetBitLengths[i] = code
+        i++
+    }
+}
+```
+
 ## Technique 2: LZ77
 
 LZ77 is a data compression algorithm published by Lempel and Ziv in 1977 (not to be confused with LZ78, which is similar but slightly different). In principle, LZ77 maintains a sliding window where we can reference some earlier data in the sliding window.
@@ -167,7 +291,7 @@ The actual LZ77 implementation used in GZIP slightly more complicated for more e
 
 
 
-## Step-by-step
+## LZ77 in GZIP
 
 Consider we have this body of text (char count 1408 chars)
 
@@ -207,22 +331,148 @@ What yesternight our council did decree
 In forwarding this dear expedience.
 ```
 
-After applying LZ77 (1988 chars): // todo add stats for back of the envelop maths
+After applying LZ77:
 ```
-So shaken as we are, so wan with c<16,4>
-Find<12,5> time for frighted peace to pant,
-A<41,3>breathe<2,3>ort-w<40,3><64,3>accents of new<85,3>oils
-To be commenc<104,3>in strands afar remote.
-No mor<71,3>h<175,4>irsty <110,3><150,3><70,3><115,3><181,3>s<20,3>il
-Shall daub her lips<27,6><222,4>own children's blood;<168,3>r<171,6>s<212,5>t<249,3><244,3>ng<23,3>r<243,3>annel<235,5>fields,<261,5>bruise<298,6>loweret<229,7><177,4>arm<142,3>hoofs
-Of<350,3>stile<75,3>ces:<340,3>o<319,3>opp<377,3>d eye<308,3>Which,<225,3>k<175,6>meteor<113,5><47,3>roubl<348,4>eaven<80,3><274,3><419,3>one natu<17,4><445,7>subst<193,5><86,3>d,
-Did lately<410,3>et<144,4><407,4>inte<362,3>n<92,5>ck<81,5>furious cl<377,5>f civil butc<322,3>y<210,7>now,<498,4>mutual<43,3>ll-beseem<283,4><192,3>k<392,3>March <560,4><463,4>way a<83,4><450,3><170,7><381,7>
-Against<106,3>qu<644,3><471,5>, k<101,3>r<104,4><620,3><607,3>i<371,3>
-T<503,3>edg<538,5><287,3><400,7><25,3>i<581,3>sh<88,5>d knife,<168,9><271,6>cut <202,4>master. <684,3>re<54,3><661,3><58,3>en<307,4>As <157,4><10,3><73,3><90,5>epulchr<691,5>Christ<393,4><536,4>soldi<323,3><564,5>u<102,3>r w<818,5><428,3>s<385,4>cross
-W<14,5> impr<850,6><672,4>engag<876,3><789,3>f<60,4><37,3><96,3>h<336,5>a p<328,4><805,4>English<736,7><44,3>levy;<816,7><345,3><11,4><866,3>mould<142,6><792,3>i<264,4><972,3>rs' womb<128,4><291,3>s<405,5>s<366,4>gans<968,6><947,4>ho<491,3><303,6>
-Ov<839,9>ac<872,3><695,3>lk'd<1016,7><848,8>f<495,3><394,6><53,3>urte<7,3>hu<666,6>yea<416,3>ago<955,6>nail'd<900,4> <1085,3> adv<77,3>a<690,4><500,6>bit<754,3><855,6>.
-B<744,3><201,5><1127,4>pur<636,4><830,4> <1168,3>t<579,3>v<959,4>n<908,3><824,3><80,7>oot<1066,4> 'ti<787,6><580,3> you<935,4>w<709,3> go<682,5><762,6><1237,4><494,5>no<1266,4>w<757,5>n<938,3>t<1262,3><432,4>r<356,4><1234,3>, my g<189,3>l<133,4>us<1014,3>W<509,3><732,4>l<879,3><815,4>at<1100,3><753,4>n<895,4><1170,5><1312,3>nc<546,3>d<484,3>de<1047,3>e
-In<53,4><696,3>d<590,4><1166,5>d<1290,3> expe<826,3><659,3>.
+So shaken as we are, so wan with c<16,4>(are,)
+Find<12,5>( we a) time for frighted peace to pant,
+A<41,3>(nd )breathe<2,3>( sh)ort-w<40,3>(ind)<64,3>(ed )accents of new<85,3>( br)oils
+To be commenc<104,3>(ed )in strands afar remote.
+No mor<71,3>(e t)h<175,4>(e th)irsty <110,3>(ent)<150,3>(ran)<70,3>(ce )<115,3>(of )<181,3>(thi)s<20,3>( so)il
+Shall daub her lips<27,6>( with )<222,4>(her )own children's blood;<168,3>(
+No)r<171,6>( more )s<212,5>(hall )t<249,3>(ren)<244,3>(chi)ng<23,3>( wa)r<243,3>( ch)annel<235,5>( her )fields,<261,5>(
+Nor )bruise<298,6>( her f)loweret<229,7>(s with )<177,4>(the )arm<142,3>(ed )hoofs
+Of<350,3>( ho)stile<75,3>( pa)ces:<340,3>( th)o<319,3>(se )opp<377,3>(ose)d eye<308,3>(s,
+)Which,<225,3>( li)k<175,6>(e the )meteor<113,5>(s of )<47,3>(a t)roubl<348,4>(ed h)eaven<80,3>(,
+A)<274,3>(ll )<419,3>(of )one natu<17,4>(re, )<445,7>(of one )subst<193,5>(ance )<86,3>(bre)d,
+Did lately<410,3>( me)et<144,4>( in )<407,4>(the )inte<362,3>(sti)n<92,5>(e sho)ck<81,5>(
+And )furious cl<377,5>(ose o)f civil butc<322,3>(her)y<210,7>(
+Shall )now,<498,4>( in )mutual<43,3>( we)ll-beseem<283,4>(ing )<192,3>(ran)k<392,3>(s,
+)March <560,4>(all )<463,4>(one )way a<83,4>(nd b)<450,3>(e n)<170,7>(o more )<381,7>(opposed)
+Against<106,3>( ac)qu<644,3>(ain)<471,5>(tance), k<101,3>(ind)r<104,4>(ed a)<620,3>(nd )<607,3>(all)i<371,3>(es:)
+T<503,3>(he )edg<538,5>(e of )<287,3>(war)<400,7>(, like )<25,3>(an )i<581,3>(ll-)sh<88,5>(eathe)d knife,<168,9>(
+No more )<271,6>(shall )cut <202,4>(his )master. <684,3>(The)re<54,3>(for)<661,3>(e, )<58,3>(fri)en<307,4>(ds,
+)As <157,4>(far )<10,3>(as )<73,3>(to )<90,5>(the s)epulchr<691,5>(e of )Christ<393,4>(,
+Wh)<536,4>(ose )soldi<323,3>(er )<564,5>(now, )u<102,3>(nde)r w<818,5>(hose )<428,3>(ble)s<385,4>(sed )cross
+W<14,5>(e are) impr<850,6>(essed )<672,4>(and )engag<876,3>(ed )<789,3>(to )f<60,4>(ight)<37,3>(,
+F)<96,3>(ort)h<336,5>(with )a p<328,4>(ower)<805,4>( of )English<736,7>( shall )<44,3>(we )levy;<816,7>(
+Whose )<345,3>(arm)<11,4>(s we)<866,3>(re )mould<142,6>(ed in )<792,3>(the)i<264,4>(r mo)<972,3>(the)rs' womb<128,4>(
+To )<291,3>(cha)s<405,5>(e the)s<366,4>(e pa)gans<968,6>( in th)<947,4>(ose )ho<491,3>(ly )<303,6>(fields)
+Ov<839,9>(er whose )ac<872,3>(res)<695,3>( wa)lk'd<1016,7>( those )<848,8>(blessed )f<495,3>(eet)<394,6>(
+Which)<53,3>( fo)urte<7,3>(en )hu<666,6>(ndred )yea<416,3>(rs )ago<955,6>( were )nail'd<900,4>(
+For) <1085,3>(our) adv<77,3>(ant)a<690,4>(ge o)<500,6>(n the )bit<754,3>(ter)<855,6>( cross).
+B<744,3>(ut )<201,5>(this )<1127,4>(our )pur<636,4>(pose)<830,4>( now) <1168,3>(is )t<579,3>(wel)v<959,4>(e mo)n<908,3>(th )<824,3>(old)<80,7>(,
+And b)oot<1066,4>(less) 'ti<787,6>(s to t)<580,3>(ell) you<935,4>( we )w<709,3>(ill) go<682,5>(:
+The)<762,6>(refore)<1237,4>( we )<494,5>(meet )no<1266,4>(t no)w<757,5>(. The)n<938,3>( le)t<1262,3>( me)<432,4>( hea)r<356,4>(
+Of )<1234,3>(you), my g<189,3>(ent)l<133,4>(e co)us<1014,3>(in )W<509,3>(est)<732,4>(more)l<879,3>(and)<815,4>(,
+Wh)at<1100,3>( ye)<753,4>(ster)n<895,4>(ight)<1170,5>( our )<1312,3>(cou)nc<546,3>(il )d<484,3>(id )de<1047,3>(cre)e
+In<53,4>( for)<696,3>(war)d<590,4>(ing )<1166,5>(this )d<1290,3>(ear) expe<826,3>(die)<659,3>(nce).
+
+Summary Report: literalCount 599, backPointerCount 202, totalBytes 1408
 ```
 
-Note that this encoding of `<back_pointer,length>` is not the most performant one and also not valid if we have the literal `<` (or at least need to escape)
+We can get reduce the space usage until only 42.5% of the original space (ignoring all the overhead first for now). The actual space usage maybe around 50-60% of original.
+
+But how do we actually encode back pointer? One naive solution is to use escape characters to differentiate the metadata (back-pointer) from the literals. However this might not have good performance. In GZIP, actually we don't even store the literals as literal, however, as **huffman code!**
+
+Here's a simplified snippet from the implementation:
+
+``` go
+for {
+    node := resolveHuffmanCode(literalsRoot, stream)
+    if node.code >= 0 && node.code < 256 {
+        // literal
+        buf = append(buf, byte(node.code))
+    } else if node.code == 256 {
+        // stop code
+        break
+    } else if node.code > 256 && node.code <= 285 {
+        // This is a back-pointer
+
+        // get length
+        var length int
+        if node.code < 265 {
+            length = node.code - 254
+        } else {
+            length = getExtraLength(length, stream)
+        }
+
+        // get distance (from huffman tree)
+        distNode := resolveHuffmanCode(distancesRoot, stream)
+        dist := dist.code 
+        if dist > 3 {
+            dist = getExtraDist(dist, stream)
+        }
+
+        // read backpointer
+        backPointer := len(buf) - dist - 1
+        for length > 0 {
+            buf = append(buf, buf[backPointer])
+            length--
+            backPointer++
+        }
+    } else {
+        panic("invalid code!")
+    }
+}
+```
+
+If you notice here there are two huffman trees being used: `literalsTree` and `distancesTree`. We will discuss about the construction of the tree later. Here is flow of data:
+
+``` plantuml
+control lz77 as outer
+control resolveLiteralsHuffman
+control resolveDistancesHuffman
+queue stream
+queue buf
+
+outer -> resolveLiteralsHuffman++: get code
+loop not yet leaf node
+  resolveLiteralsHuffman -> stream++: next bit
+  resolveLiteralsHuffman <-- stream--
+end
+outer <-- resolveLiteralsHuffman--: code
+
+alt if literal code < 256
+  outer -> buf: literal
+
+
+else if literal code == 256
+  outer -> buf: flush (done)
+  outer -> outer: break
+
+
+else if literal code > 256
+  group "Get length"
+    alt "code >= 265"
+      outer -> stream++: get extra bits for length
+      outer <-- stream--: bits
+    end
+    outer -> outer: calculate length
+  end
+  
+  group "Resolve distance code"
+    outer -> resolveDistancesHuffman++: get distances code
+    loop not yet leaf node
+      resolveDistancesHuffman -> stream++: next bit
+      resolveDistancesHuffman <-- stream--
+    end
+    outer <-- resolveDistancesHuffman--: code
+  end
+  
+  group "Get distances"
+    alt distanceCode >= 3
+      outer -> stream++: get extra bits for distances
+      outer <-- stream--: bits
+    end
+    outer -> outer: calculate distance
+  end
+  
+  group "Write backpointer"
+    loop length
+      outer -> buf: write using backpointer
+    end
+  end
+end
+```
+
+![LZ77.png](LZ77.png)

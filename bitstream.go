@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -38,9 +37,6 @@ func readBitsInv(stream *bitstream, count int) (value int) {
 	for i := 0; i < count; i++ {
 		bit := nextBit(stream)
 		value |= int(bit) << i // set as MSB
-	}
-	if explanationMode {
-		fmt.Printf("\n-- reading %d bits, value is %x\n", count, value)
 	}
 	return value
 }

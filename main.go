@@ -15,7 +15,6 @@ var (
 
 var literalCount, backPointerCount, totalBytes int
 
-// TODO create cli interface
 func main() {
 	literalCount, backPointerCount, totalBytes = 0, 0, 0
 
