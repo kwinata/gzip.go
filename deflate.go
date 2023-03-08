@@ -83,7 +83,7 @@ func readAlphabetsBitLengths(stream *bitstream, alphabetCount int, codeLengthsRo
 	for i < alphabetCount {
 		code, _ := getCode(stream, codeLengthsRoot)
 		// 0-15: literal (4 bits)
-		// 16: repeat the previous character n times
+		// 16: repeat the previous character n+3 times (2 extra bits specified)
 		// 17: insert n 0's (3 bit specified), max value is 10
 		// 18: insert n 0's (7 bit specifier), add 11 (because it's the max of code 17)
 		if code == 16 {

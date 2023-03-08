@@ -250,7 +250,7 @@ The actual RLE system used in GZIP:
 for i < alphabetCount {
     code, _ := getCode(stream, codeLengthsRoot)
     // 0-15: literal (4 bits)
-    // 16: repeat the previous character n times
+    // 16: repeat the previous character n+3 times (2 extra bits specified)
     // 17: insert n 0's (3 bit specified), max value is 10
     // 18: insert n 0's (7 bit specifier), add 11 (because it's the max of code 17)
     if code == 16 {
@@ -276,6 +276,41 @@ for i < alphabetCount {
     }
 }
 ```
+
+The instructions above actually contains very clever designs:
+- for code 16, always add 3 times. Because if it only repeated 2 times, it's the same as directly write the codes (using 2 symbols). Using code 16 means we need to specify code `16`, then `0b11`.
+- same technique applied for code 17
+- for code 18, since for repetition count 4-10 is already covered, we can directly jump to `11`.
+
+Finally, these codes from 0-18 are huffman-encoded as bit-lengths:
+
+``` go
+func readCodesBitLengths(stream *bitstream, hclen int) []int {
+	// The specification refers to the repetition codes as the values 16, 17, and 18,
+	//	but these numbers don't have any real physical meaning
+	//	16 means "repeat the previous character n times",
+	//	and 17 & 18 mean "insert n 0's".
+	//	The number n follows the repeat codes and is encoded
+	//	(without compression) in 2, 3 or 7 bits, respectively
+
+	// Because codes of lengths 15, 1, 14 and 2 are likely to be very rare in real-world data,
+	// 	the codes themselves are given in order of expected frequency
+	codeLengthOffsets := []int{
+		16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+	}
+
+	codeBitLengths := make([]int, 19) // max hclen (0b1111) + 4
+	for i := 0; i < (hclen + 4); i++ {
+		codeBitLengths[codeLengthOffsets[i]] = readBitsInv(stream, 3)
+	}
+
+	return codeBitLengths
+}
+```
+
+So we grow from up-to 19 symbols (maximally 57 bits) huffman tree, which we will use to build the 285 codes literals huffman tree.
+
+
 
 ## Technique 2: LZ77
 
@@ -476,3 +511,16 @@ end
 ```
 
 ![LZ77.png](LZ77.png)
+
+The tecnhique used in getting the extra distances and extra lengths is similar to the earlier code `17`, `18`. That is, having variable count of extra bits + the base offset.
+
+## Putting it all together
+
+![gzip_overview.excalidraw.png](gzip_overview.excalidraw.png)
+
+## Demo
+
+Live demo or backup video:
+
+![demo_gzip.mp4](demo_gzip.mp4)
+
