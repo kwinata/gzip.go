@@ -1,10 +1,8 @@
 # gzip.go
 
-Largely derived from http://www.infinitepartitions.com/art001.html
+The implementation is largely derived from http://www.infinitepartitions.com/art001.html, but I try to add some overview explanations.
   
 ## Technique 1: Huffman Encoding
-
-It's one instance of optimal encoding system.
 
 What is encoding? Encoding is mapping from **symbols** to another **symbols**. 
 In this case we will map the symbol to binary values, which we will simply call as **codes**.
@@ -308,13 +306,13 @@ func readCodesBitLengths(stream *bitstream, hclen int) []int {
 }
 ```
 
-So we grow from up-to 19 symbols (maximally 57 bits) huffman tree, which we will use to build the 285 codes literals huffman tree.
+So we will have this up-to 19 symbols (maximally 57 bits) huffman tree, which we will use to build the 285 codes literals huffman tree.
 
 
 
 ## Technique 2: LZ77
 
-LZ77 is a data compression algorithm published by Lempel and Ziv in 1977 (not to be confused with LZ78, which is similar but slightly different). In principle, LZ77 maintains a sliding window where we can reference some earlier data in the sliding window.
+LZ77 is a data compression algorithm published by Lempel and Ziv in 1977 (not to be confused with LZ78 (see footnote), which is similar but slightly different). In principle, LZ77 maintains a sliding window where we can reference some earlier data in the sliding window.
 
 One implementation could be to have triplets of data: `(back pointer, copy-length, next_byte)` as such:
 
@@ -322,7 +320,7 @@ One implementation could be to have triplets of data: `(back pointer, copy-lengt
 
 Notice the triplet like `(3, 4, b)`, the string `aaca` is a self-reference. (the last `a` in the blue box refers to first `a` in the blue box). This always happens when `copy-length` is bigger than `back-pointer`.
 
-The actual LZ77 implementation used in GZIP slightly more complicated for more efficient use of space. But we can discuss it later.
+The actual LZ77 implementation used in GZIP slightly more complicated for more efficient use of space. It doesn't use the triplet, but rather differentiate literals and "back-pointers".
 
 
 
@@ -524,3 +522,24 @@ Live demo or backup video:
 
 ![demo_gzip.mp4](demo_gzip.mp4)
 
+Actual performance:
+
+- Shakespare: uncompressed 1408B, compressed is 822B. Means it's 58% ratio
+- Feynman lecture: uncompressed is 37106B, compressed is 13337B, Means it's 36% ratio.
+
+Generally the bigger the file should have better compression because more back-referencing.
+
+## Footnote
+
+LZ77 and LZ78 difference is only slightly but fundamental. LZ77 builds the "shortcut dictionary" on the fly, referencing earlier data. LZ78 will pre-calculate the "shortcut dictionary", which then can be used as building blocks. There is no concept of "back-pointer" in LZ78, only "pointer" where one dictionary entry can refer to more simpler dictionary entry. A bit like defining "going" by referencing "go".
+
+The main drawback of LZ77 compared to LZ78 is the need to keep the sliding window. LZ78 can build dictionary items from anywhere within the compressed text. However, the drawback of LZ77 also means it can be used for streaming applications like media streaming in the web, meanwhile LZ78 couldn't.
+
+## References
+
+- http://www.infinitepartitions.com/art001.html
+- https://en.wikipedia.org/wiki/LZ77_and_LZ78
+- https://en.wikipedia.org/wiki/Gzip
+- https://www.rfc-editor.org/rfc/rfc1951
+- https://jvns.ca/blog/2013/10/16/day-11-how-does-gzip-work/
+- https://jvns.ca/blog/2013/10/23/day-15-how-gzip-works/
